@@ -148,7 +148,7 @@ fetch_and_rename_survey <- function(input_qid) {
 
 
 ### Function 2: update google sheets with the google sheet function
-update_master <- function() {
+update_master <- function(master_sid = master_sid) {
     #read the 'master' sheet from google, all col_types set to character
     master <-
         read_sheet(ss = master_sid,
@@ -157,7 +157,7 @@ update_master <- function() {
     
     #store program information in a separate table for later use
     program_info <-
-        master %>% select(qid, modality, k12, higher_ed, early_childhood)
+        master %>% select(program_name, qid, modality, k12, higher_ed, early_childhood)
     
     #read the 'stacked' sheet from google, all col_types set to character
     stacked.old <-
