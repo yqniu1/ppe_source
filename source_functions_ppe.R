@@ -10,6 +10,7 @@ for (package in packages) {
 }
 
 
+
 ### Function 1: fetch & rename surveys from Qualtrics, using the qualtRics Package
 fetch_and_rename_survey <- function(input_qid) {
 
@@ -159,12 +160,6 @@ update_master <- function(master_sid = master_sid) {
     program_info <-
         master %>% select(program_name, qid, modality, k12, higher_ed, early_childhood)
     
-    #read the 'stacked' sheet from google, all col_types set to character
-    stacked.old <-
-        read_sheet(ss = master_sid,
-                   sheet = "stacked",
-                   col_types = "c")
-    
     #get all the qid's
     master.qid <- master$qid
     
@@ -173,8 +168,8 @@ update_master <- function(master_sid = master_sid) {
     
     #update progra info
     updates <-
-        updates |>  
-        left_join(x = updates, y = program_info, by = "qid")
+        program_info |>  
+        dplyr::right_join(updates, by = "qid")
     
     #remove old sheet
     sheet_delete(ss = master_sid, sheet = "stacked")
@@ -210,7 +205,7 @@ update_summaries <- function(master_sid = master_sid) {
     #make sure all except ID, date, and modality columns are in numeric format
     stacked <-
         stacked |> mutate(across(
-            .cols = -c("qid", "rid", "date", "modality"),
+            .cols = -c("program_name","qid", "rid", "date", "modality"),
             .fns = as.numeric
         ))
     
