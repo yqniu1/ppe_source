@@ -174,8 +174,7 @@ update_master <- function(master_sid = master_sid) {
     #update progra info
     updates <-
         updates |>  
-        left_join(x = updates, y = program_info, by = "qid") |> 
-        select(-program_name.y)
+        left_join(x = updates, y = program_info, by = "qid")
     
     #remove old sheet
     sheet_delete(ss = master_sid, sheet = "stacked")
