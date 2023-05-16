@@ -173,7 +173,9 @@ update_master <- function(master_sid = master_sid) {
     
     #update progra info
     updates <-
-        updates %>% left_join(x = updates, y = program_info, by = "qid")
+        updates |>  
+        left_join(x = updates, y = program_info, by = "qid") |> 
+        select(-program_name.y)
     
     #remove old sheet
     sheet_delete(ss = master_sid, sheet = "stacked")
@@ -324,7 +326,8 @@ update_summaries <- function(master_sid = master_sid) {
     
     #add meta data back into the spreadsheet
     kpi_summaries <-
-        master |> right_join(kpi_summaries, by = "qid", keep = FALSE)
+        master |> 
+        dplyr::right_join(kpi_summaries, by = "qid", keep = FALSE)
     
     #upload the updated sheet into google
     sheet_write(data = kpi_summaries,
