@@ -99,7 +99,7 @@ fetch_and_rename_survey <- function(input_qid) {
         "Overall, how satisfied were you with the program?" = "overall_satisfaction",
         "To what extent are the following statements about the program content true for you? - The program content was relevant to my professional context." = "content_relevant",
         "To what extent are the following statements about the program content true for you? - The program content was personally enriching." = "content_enriching",
-        "“Overall, how satisfied were you with the customer service you received from program staff (before and during the program)?" = "overall_service",
+        "Overall, how satisfied were you with the customer service you received from program staff (before and during the program)?" = "overall_service",
         "HGSE is committed to diversity, equity, inclusion, and belonging. To what extent do you think the following statements are true? - The program content incorporated diverse voices and identities." = "deib_incorporate",
         "HGSE is committed to diversity, equity, inclusion, and belonging. To what extent do you think the following statements are true? - The program participants represented a diversity of voices and identities." = "deib_represent",
         "We strive to create a community of practice in our programs. To what extent are the following statements true for you? - I felt like part of a learning community." = "community_partof",
