@@ -243,14 +243,6 @@ update_summaries <- function(master_sid = master_sid) {
             "workload",
             "knowledge_skill_ready"
         )
-    valueable_items <- c(
-        "element_orientation",
-        "element_assignments",
-        "element_videos",
-        "element_readings",
-        "element_breakout",
-        "element_actionplan"
-    )
     #Qualtrics recode these as 1 and NA
     indicator_items <- c(
         "modality_person",
@@ -277,10 +269,6 @@ update_summaries <- function(master_sid = master_sid) {
                 .cols = all_of(amount_items),
                 .fns = ~ factor(.x, levels = 1:5, labels = amount_scale_5)
             ),
-            across(
-                .cols = all_of(valueable_items),
-                .fns = ~ factor(.x, levels = 1:5, labels = valueable_scale_5)
-            ),
             #yes/no - R codes these as 2/1. subtract 1.
             across(
                 .cols = all_of(yes_no_items),
@@ -306,7 +294,6 @@ update_summaries <- function(master_sid = master_sid) {
             c(
                 satisfaction_items,
                 amount_items,
-                valueable_items,
                 indicator_items,
                 yes_no_items
             )
