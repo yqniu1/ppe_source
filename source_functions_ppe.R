@@ -69,12 +69,6 @@ fetch_and_rename_survey <- function(input_qid) {
         "community_shared",
         "community_network",
         "workload",
-        "element_orientation",
-        "element_assignments" ,
-        "element_videos",
-        "element_readings",
-        "element_breakout" ,
-        "element_actionplan",
         "knowledge_skill_ready" ,
         "knowledge_skill_needs",
         "enrolled_with_colleagues" ,
@@ -82,6 +76,7 @@ fetch_and_rename_survey <- function(input_qid) {
         "nps",
         "nps_score",
         "recommend_now",
+        "current_sector",
         "modality_person",
         "modality_hybrid",
         "modality_online_asyn",
@@ -90,7 +85,11 @@ fetch_and_rename_survey <- function(input_qid) {
         "length_day_3_6" ,
         "length_week_1_2",
         "length_week_3_5" ,
-        "length_week_6_plus"
+        "length_week_6_plus",
+        "modality_1st",
+        "modality_2nd",
+        "length_1st",
+        "length_2nd"
     )
     
     #rename columns
@@ -100,19 +99,13 @@ fetch_and_rename_survey <- function(input_qid) {
         "Overall, how satisfied were you with the program?" = "overall_satisfaction",
         "To what extent are the following statements about the program content true for you? - The program content was relevant to my professional context." = "content_relevant",
         "To what extent are the following statements about the program content true for you? - The program content was personally enriching." = "content_enriching",
-        "Overall, how satisfied were you with the service you received from program staff (before and during the program)?" = "overall_service",
+        "“Overall, how satisfied were you with the customer service you received from program staff (before and during the program)?" = "overall_service",
         "HGSE is committed to diversity, equity, inclusion, and belonging. To what extent do you think the following statements are true? - The program content incorporated diverse voices and identities." = "deib_incorporate",
         "HGSE is committed to diversity, equity, inclusion, and belonging. To what extent do you think the following statements are true? - The program participants represented a diversity of voices and identities." = "deib_represent",
         "We strive to create a community of practice in our programs. To what extent are the following statements true for you? - I felt like part of a learning community." = "community_partof",
         "We strive to create a community of practice in our programs. To what extent are the following statements true for you? - I shared reflections, feedback, and implementation strategies with my peers." = "community_shared",
         "We strive to create a community of practice in our programs. To what extent are the following statements true for you? - I grew my professional network." = "community_network",
         "How do you assess the workload required by this program?" = "workload",
-        "Please rate how valuable you found the following program elements. - Orientation" = "element_orientation",
-        "Please rate how valuable you found the following program elements. - Assignments" = "element_assignments",
-        "Please rate how valuable you found the following program elements. - Videos (e.g. Interviews)" = "element_videos",
-        "Please rate how valuable you found the following program elements. - Readings" = "element_readings",
-        "Please rate how valuable you found the following program elements. - Break-out Sessions" = "element_breakout",
-        "Please rate how valuable you found the following program elements. - Customized Action Plan" = "element_actionplan",
         "To what extent do you feel ready to use the knowledge and skills you've gained from this program?" = "knowledge_skill_ready",
         "Did you enroll in this program with other colleagues from your institution?" = "enrolled_with_colleagues",
         "Do you currently reside in the United States?" = "in_us",
@@ -124,12 +117,18 @@ fetch_and_rename_survey <- function(input_qid) {
         "Which program delivery methods do you prefer when undertaking professional development? - Entirely online (mostly asynchronous)" =
             "modality_online_asyn",
         "Which program delivery methods do you prefer when undertaking professional development? - Entirely online (mostly live/synchronous)" = "modality_online_syn",
+        "What sector do you currently work in?" = "current_sector",
         "Which program lengths do you prefer for your own professional development? - 1-2 days" = "length_day_1_2",
         "Which program lengths do you prefer for your own professional development? - 3-6 days" = "length_day_3_6",
         "Which program lengths do you prefer for your own professional development? - 1-2 weeks" = "length_week_1_2",
         "Which program lengths do you prefer for your own professional development? - 3-5 weeks" = "length_week_3_5" ,
         "Which program lengths do you prefer for your own professional development? - 6+ weeks, i.e. semester or year-long" =
-            "length_week_6_plus"
+            "length_week_6_plus",
+        "Which program delivery method would be your first choice when undertaking professional development?" = "modality_1st",
+        "Which program delivery method would be your second choice when undertaking professional development?" = "modality_2nd",
+        "Which program length would be your first choice for your own professional development?" = "length_1st",
+        "Which program length would be your second choice for your own professional development?" = "length_2nd"
+        
     )
     
     #rename questions as column names, shorten to something readable
