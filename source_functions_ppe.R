@@ -28,7 +28,12 @@ fetch_and_rename_survey <- function(input_qid) {
     colnames(survey) <-
         attributes(survey)[["column_map"]][["description"]]
     
-    #a function to rename columns if they exist
+    
+    survey <- survey %>% 
+        select(unique(colnames(.)))
+
+    
+        #a function to rename columns if they exist
     rename_cols_if_exist <- function(df, name_dict) {
         intersecting_names <- intersect(names(df), names(name_dict))
         if (length(intersecting_names) > 0) {
