@@ -76,7 +76,7 @@ fetch_and_rename_survey <- function(input_qid) {
         "nps",
         "nps_score",
         "recommend_now",
-        "current_sector",
+        # "current_sector",
         "modality_person",
         "modality_hybrid",
         "modality_online_asyn",
@@ -117,7 +117,7 @@ fetch_and_rename_survey <- function(input_qid) {
         "Which program delivery methods do you prefer when undertaking professional development? - Entirely online (mostly asynchronous)" =
             "modality_online_asyn",
         "Which program delivery methods do you prefer when undertaking professional development? - Entirely online (mostly live/synchronous)" = "modality_online_syn",
-        "What sector do you currently work in?" = "current_sector",
+        # "What sector do you currently work in?" = "current_sector",
         "Which program lengths do you prefer for your own professional development? - 1-2 days" = "length_day_1_2",
         "Which program lengths do you prefer for your own professional development? - 3-6 days" = "length_day_3_6",
         "Which program lengths do you prefer for your own professional development? - 1-2 weeks" = "length_week_1_2",
@@ -231,6 +231,7 @@ update_summaries <- function(master_sid = master_sid) {
                            "Completely")
     satisfaction_items <-
         c("overall_satisfaction", "overall_service")
+    
     amount_items <-
         c(
             "content_relevant",
