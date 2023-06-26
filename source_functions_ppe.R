@@ -129,8 +129,8 @@ fetch_and_rename_survey <- function(input_qid) {
         "Which program lengths do you prefer for your own professional development? - 3-5 weeks" = "length_week_3_5" ,
         "Which program lengths do you prefer for your own professional development? - 6+ weeks, i.e. semester or year-long" =
             "length_week_6_plus",
-        "Which program delivery method would be your first choice when undertaking professional development?" = "modality_1st",
-        "Which program delivery method would be your second choice when undertaking professional development?" = "modality_2nd",
+        "Which modality would be your first choice when undertaking professional development?" = "modality_1st",
+        "Which modality would be your second choice when undertaking professional development?" = "modality_2nd",
         "Which program length would be your first choice for your own professional development?" = "length_1st",
         "Which program length would be your second choice for your own professional development?" = "length_2nd"
         
