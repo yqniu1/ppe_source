@@ -9,8 +9,6 @@ for (package in packages) {
     library(package, character.only = TRUE)
 }
 
-
-
 ### Function 1: fetch & rename surveys from Qualtrics, using the qualtRics Package
 fetch_and_rename_survey <- function(input_qid) {
 
@@ -82,15 +80,15 @@ fetch_and_rename_survey <- function(input_qid) {
         "nps_score",
         "recommend_now",
         # "current_sector",
-        "modality_person",
-        "modality_hybrid",
-        "modality_online_asyn",
-        "modality_online_syn",
-        "length_day_1_2" ,
-        "length_day_3_6" ,
-        "length_week_1_2",
-        "length_week_3_5" ,
-        "length_week_6_plus",
+        # "modality_person",
+        # "modality_hybrid",
+        # "modality_online_asyn",
+        # "modality_online_syn",
+        # "length_day_1_2" ,
+        # "length_day_3_6" ,
+        # "length_week_1_2",
+        # "length_week_3_5" ,
+        # "length_week_6_plus",
         "modality_1st",
         "modality_2nd",
         "length_1st",
@@ -112,23 +110,23 @@ fetch_and_rename_survey <- function(input_qid) {
         "We strive to create a community of practice in our programs. To what extent are the following statements true for you? - I grew my professional network." = "community_network",
         "How do you assess the workload required by this program?" = "workload",
         "To what extent do you feel ready to use the knowledge and skills you've gained from this program?" = "knowledge_skill_ready",
-        "Did you enroll in this program with other colleagues from your institution?" = "enrolled_with_colleagues",
+        "Did you enroll in this program with other colleagues from your organization (i.e. school, university, district, etc.)?" = "enrolled_with_colleagues",
         "Do you currently reside in the United States?" = "in_us",
         "How likely are you to recommend this program to a friend or colleague? - Group" = "nps",
         "How likely are you to recommend this program to a friend or colleague?" = "nps_score",
         "Would you like to recommend this program to a colleague now, by entering their email(s) on the next screen?" = "recommend_now",
-        "Which program delivery methods do you prefer when undertaking professional development? - Entirely in person" = "modality_person",
-        "Which program delivery methods do you prefer when undertaking professional development? - Hybrid (in person and online)" = "modality_hybrid",
-        "Which program delivery methods do you prefer when undertaking professional development? - Entirely online (mostly asynchronous)" =
-            "modality_online_asyn",
-        "Which program delivery methods do you prefer when undertaking professional development? - Entirely online (mostly live/synchronous)" = "modality_online_syn",
+        # "Which program delivery methods do you prefer when undertaking professional development? - Entirely in person" = "modality_person",
+        # "Which program delivery methods do you prefer when undertaking professional development? - Hybrid (in person and online)" = "modality_hybrid",
+        # "Which program delivery methods do you prefer when undertaking professional development? - Entirely online (mostly asynchronous)" =
+        #     "modality_online_asyn",
+        # "Which program delivery methods do you prefer when undertaking professional development? - Entirely online (mostly live/synchronous)" = "modality_online_syn",
         # "What sector do you currently work in?" = "current_sector",
-        "Which program lengths do you prefer for your own professional development? - 1-2 days" = "length_day_1_2",
-        "Which program lengths do you prefer for your own professional development? - 3-6 days" = "length_day_3_6",
-        "Which program lengths do you prefer for your own professional development? - 1-2 weeks" = "length_week_1_2",
-        "Which program lengths do you prefer for your own professional development? - 3-5 weeks" = "length_week_3_5" ,
-        "Which program lengths do you prefer for your own professional development? - 6+ weeks, i.e. semester or year-long" =
-            "length_week_6_plus",
+        # "Which program lengths do you prefer for your own professional development? - 1-2 days" = "length_day_1_2",
+        # "Which program lengths do you prefer for your own professional development? - 3-6 days" = "length_day_3_6",
+        # "Which program lengths do you prefer for your own professional development? - 1-2 weeks" = "length_week_1_2",
+        # "Which program lengths do you prefer for your own professional development? - 3-5 weeks" = "length_week_3_5" ,
+        # "Which program lengths do you prefer for your own professional development? - 6+ weeks, i.e. semester or year-long" =
+        #     "length_week_6_plus",
         "Which modality would be your first choice when undertaking professional development?" = "modality_1st",
         "Which modality would be your second choice when undertaking professional development?" = "modality_2nd",
         "Which program length would be your first choice for your own professional development?" = "length_1st",
@@ -148,8 +146,6 @@ fetch_and_rename_survey <- function(input_qid) {
     return(survey)
     
 }
-
-
 
 
 ### Function 2: update google sheets with the google sheet function
@@ -186,8 +182,6 @@ update_master <- function(master_sid = master_sid) {
     print("All surveys updated and new surveys added")
     
 }
-
-
 
 
 ### Function 3 - summarize KPI by group
@@ -279,12 +273,12 @@ update_summaries <- function(master_sid = master_sid) {
             across(
                 .cols = all_of(yes_no_items),
                 .fns = ~ ifelse(is.na(.x), 0, .x - 1)
-            ),
-            #indicators - those are indicator variables converted categoricals, so we'll treat NA as 0
-            across(
-                .cols = all_of(indicator_items),
-                .fns = ~ ifelse(is.na(.x), 0, .x)
             )
+            #indicators - those are indicator variables converted categoricals, so we'll treat NA as 0
+            # across(
+            #     .cols = all_of(indicator_items),
+            #     .fns = ~ ifelse(is.na(.x), 0, .x)
+            # )
         )
     
     #convert datset to a dataframe for the likerk pagage
@@ -300,7 +294,7 @@ update_summaries <- function(master_sid = master_sid) {
             c(
                 satisfaction_items,
                 amount_items,
-                indicator_items,
+                # indicator_items,
                 yes_no_items
             )
         ),
