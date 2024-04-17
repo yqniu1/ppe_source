@@ -1,156 +1,99 @@
-### Check functions, load or install as necessary
 packages <- c("qualtRics", "googlesheets4", "tidyverse", "gtools")
-for (package in packages) {
-    # If the package is not installed, install it
-    if (!require(package, character.only = TRUE)) {
-        install.packages(package, dependencies = TRUE)
+sapply(packages, function(pkg) {
+    if (!requireNamespace(pkg, quietly = TRUE)) {
+        message(paste("Installing package:", pkg))
+        install.packages(pkg)
     }
-    # Load the package
-    library(package, character.only = TRUE)
-}
+    message(paste("Loading package:", pkg))
+    library(pkg, character.only = TRUE)
+})
 
-### Function 1: fetch & rename surveys from Qualtrics, using the qualtRics Package
+
+
+#new version----
 fetch_and_rename_survey <- function(input_qid) {
-
-    survey <- fetch_survey(
-        input_qid,
-        add_column_map = TRUE,
-        include_metadata = c("ResponseId", "RecordedDate"),
-        include_embedded = NA,
-        force_request = TRUE,
-        convert = FALSE,
-        label = FALSE,
-        verbose = FALSE
-    )
-    
+    ## fetch survey----
+    survey <-
+        fetch_survey(
+            input_qid,
+            add_column_map = TRUE,
+            include_metadata = c("ResponseId", "RecordedDate"),
+            include_embedded = NA,
+            force_request = TRUE,
+            convert = FALSE,
+            label = FALSE,
+            verbose = FALSE
+        )
+    ## extract questions from column map and set it as column names----
     colnames(survey) <-
         attributes(survey)[["column_map"]][["description"]]
     
+    ## make sure that survey names are unique----
+    survey <- survey %>% select(unique(colnames(.)))
     
-    survey <- survey %>% 
-        select(unique(colnames(.)))
-
     
-        #a function to rename columns if they exist
-    rename_cols_if_exist <- function(df, name_dict) {
-        intersecting_names <- intersect(names(df), names(name_dict))
-        if (length(intersecting_names) > 0) {
-            df <-
-                rename(df, !!!setNames(intersecting_names, name_dict[intersecting_names]))
-        }
-        return(df)
+    ## a function to rename columns with a mapping document----
+    rename_cols_with_map <- function(survey_df, mapping_df) {
+        # Create a named vector where names are longnames and values are shortnames
+        name_mapping <-
+            setNames(mapping_df$shortname, mapping_df$longname)
+        
+        # Vectorized matching and renaming
+        # For each column name in survey_df, look for a match in the name_mapping vector
+        # If a match is found, use the corresponding value (shortname) from name_mapping
+        # If no match is found, keep the original column name
+        colnames(survey_df) <-
+            ifelse(
+                colnames(survey_df) %in% names(name_mapping),
+                name_mapping[colnames(survey_df)],
+                colnames(survey_df)
+            )
+        
+        # Return the updated survey dataframe
+        return(survey_df)
     }
     
-    #a function to select the columns of interest from the full survey.
-    select_or_create_cols <- function(df, col_names) {
-        # Select the existing columns
-        df <- df[, names(df) %in% col_names, drop = FALSE]
+    
+    ## a function to select the columns of interest from the full survey.----
+    select_or_create_cols <- function(df) {
+        # Ensure col_names is a character vector
+        col_names <- mapping_df |> pull(shortname) |> unique()
         
-        # Find out which columns are missing
-        missing_cols <- names(df)[!names(df) %in% col_names]
+        # Existing column names in df
+        existing_cols <- col_names[col_names %in% names(df)]
+        
+        # Select existing columns, using base R subsetting
+        df_selected <- df[, existing_cols, drop = FALSE]
+        
+        # Identify which columns are missing from the desired col_names list
+        missing_cols <- setdiff(col_names, existing_cols)
         
         # Create the missing columns and fill them with NA
-        df[missing_cols] <-
-            lapply(missing_cols, function(x)
-                rep(NA, nrow(df)))
+        if (length(missing_cols) > 0) {
+            df_selected[missing_cols] <- NA
+        }
         
-        return(df)
+        return(df_selected)
     }
     
-    #col_names we want in Google
-    col_names <- c(
-        "qid",
-        "rid",
-        "date",
-        "overall_satisfaction",
-        "content_relevant",
-        "content_enriching",
-        "overall_service",
-        "deib_incorporate",
-        "deib_represent",
-        "community_partof",
-        "community_shared",
-        "community_network",
-        "workload",
-        "knowledge_skill_ready" ,
-        "knowledge_skill_needs",
-        "enrolled_with_colleagues" ,
-        "in_us",
-        "nps",
-        "nps_score",
-        "recommend_now",
-        # "current_sector",
-        # "modality_person",
-        # "modality_hybrid",
-        # "modality_online_asyn",
-        # "modality_online_syn",
-        # "length_day_1_2" ,
-        # "length_day_3_6" ,
-        # "length_week_1_2",
-        # "length_week_3_5" ,
-        # "length_week_6_plus",
-        "modality_1st",
-        "modality_2nd",
-        "length_1st",
-        "length_2nd"
-    )
     
-    #rename columns
-    oldname_newname <- c(
-        "Response ID" = "rid",
-        "Recorded Date" = "date",
-        "Overall, how satisfied were you with the program?" = "overall_satisfaction",
-        "To what extent are the following statements about the program content true for you? - The program content was relevant to my professional context." = "content_relevant",
-        "To what extent are the following statements about the program content true for you? - The program content was personally enriching." = "content_enriching",
-        "Overall, how satisfied were you with the customer service you received from program staff (before and during the program)?" = "overall_service",
-        "HGSE is committed to diversity, equity, inclusion, and belonging. To what extent do you think the following statements are true? - The program content incorporated diverse voices and identities." = "deib_incorporate",
-        "HGSE is committed to diversity, equity, inclusion, and belonging. To what extent do you think the following statements are true? - The program participants represented a diversity of voices and identities." = "deib_represent",
-        "We strive to create a community of practice in our programs. To what extent are the following statements true for you? - I felt like part of a learning community." = "community_partof",
-        "We strive to create a community of practice in our programs. To what extent are the following statements true for you? - I shared reflections, feedback, and implementation strategies with my peers." = "community_shared",
-        "We strive to create a community of practice in our programs. To what extent are the following statements true for you? - I grew my professional network." = "community_network",
-        "How do you assess the workload required by this program?" = "workload",
-        "To what extent do you feel ready to use the knowledge and skills you've gained from this program?" = "knowledge_skill_ready",
-        "Did you enroll in this program with other colleagues from your organization (i.e. school, university, district, etc.)?" = "enrolled_with_colleagues",
-        "Do you currently reside in the United States?" = "in_us",
-        "How likely are you to recommend this program to a friend or colleague? - Group" = "nps",
-        "How likely are you to recommend this program to a friend or colleague?" = "nps_score",
-        "Would you like to recommend this program to a colleague now, by entering their email(s) on the next screen?" = "recommend_now",
-        # "Which program delivery methods do you prefer when undertaking professional development? - Entirely in person" = "modality_person",
-        # "Which program delivery methods do you prefer when undertaking professional development? - Hybrid (in person and online)" = "modality_hybrid",
-        # "Which program delivery methods do you prefer when undertaking professional development? - Entirely online (mostly asynchronous)" =
-        #     "modality_online_asyn",
-        # "Which program delivery methods do you prefer when undertaking professional development? - Entirely online (mostly live/synchronous)" = "modality_online_syn",
-        # "What sector do you currently work in?" = "current_sector",
-        # "Which program lengths do you prefer for your own professional development? - 1-2 days" = "length_day_1_2",
-        # "Which program lengths do you prefer for your own professional development? - 3-6 days" = "length_day_3_6",
-        # "Which program lengths do you prefer for your own professional development? - 1-2 weeks" = "length_week_1_2",
-        # "Which program lengths do you prefer for your own professional development? - 3-5 weeks" = "length_week_3_5" ,
-        # "Which program lengths do you prefer for your own professional development? - 6+ weeks, i.e. semester or year-long" =
-        #     "length_week_6_plus",
-        "Which modality would be your first choice when undertaking professional development?" = "modality_1st",
-        "Which modality would be your second choice when undertaking professional development?" = "modality_2nd",
-        "Which program length would be your first choice for your own professional development?" = "length_1st",
-        "Which program length would be your second choice for your own professional development?" = "length_2nd"
-        
-    )
+    ## rename questions as column names, shorten to something readable----
+    survey <- rename_cols_with_map(survey, mapping_df)
     
-    #rename questions as column names, shorten to something readable
-    survey <- rename_cols_if_exist(survey, oldname_newname)
     
-    #add a column for qid
-    survey <- cbind(qid = input_qid, survey)
+    ## select only the columns we want from the full survey
+    s <- select_or_create_cols(survey)
     
-    #select only the columns we want from the full survey
-    survey <- select_or_create_cols(survey, col_names)
-    
-    return(survey)
+    ## add a column for qid----
+    s <- cbind(qid = input_qid, s)
     
 }
 
 
-### Function 2: update google sheets with the google sheet function
+### Function 2: update google sheets with the google sheet function from master_sid----
+#read the 'master' sheet from google, all col_types set to character
+
 update_master <- function(master_sid = master_sid) {
-    #read the 'master' sheet from google, all col_types set to character
     master <-
         read_sheet(ss = master_sid,
                    sheet = "master",
@@ -158,17 +101,42 @@ update_master <- function(master_sid = master_sid) {
     
     #store program information in a separate table for later use
     program_info <-
-        master %>% select(program_name, qid, modality, k12, higher_ed, early_childhood)
+        master %>% select(
+            program_name,
+            qid,
+            modality,
+            k12,
+            higher_ed,
+            early_childhood,
+            parent_program_code,
+            portfolio,
+            full_name,
+            iteration_id,
+            series,
+            start_date,
+            start_year,
+            start_month,
+            tuition,
+            lift,
+            ceus,
+            length,
+            days_programming,
+            response_count,
+            final_enrollment,
+            response_rate,
+            response_rate
+        )
     
     #get all the qid's
     master.qid <- master$qid
     
     #fetch all responses in the update list and stack
-    updates <- map_df(master.qid, fetch_and_rename_survey)
+    updates <-
+        map(master.qid, fetch_and_rename_survey) |> list_rbind()
     
     #update progra info
     updates <-
-        program_info |>  
+        program_info |>
         dplyr::right_join(updates, by = "qid")
     
     #remove old sheet
@@ -178,13 +146,9 @@ update_master <- function(master_sid = master_sid) {
     sheet_write(data = updates,
                 ss = master_sid,
                 sheet = "stacked")
-    
     print("All surveys updated and new surveys added")
-    
 }
 
-
-### Function 3 - summarize KPI by group
 
 update_summaries <- function(master_sid = master_sid) {
     stacked <- read_sheet(ss = master_sid, sheet = "stacked")
@@ -196,14 +160,15 @@ update_summaries <- function(master_sid = master_sid) {
     # a custom function to handle NPS
     get_nps <- function(vec) {
         vec <- vec |>  na.omit()
-        nps <- sum(vec == 3) / length(vec) - sum(vec == 1) / length(vec)
+        nps <-
+            sum(vec == 3) / length(vec) - sum(vec == 1) / length(vec)
         return(round(nps * 100, 2))
     }
     
     #make sure all except ID, date, and modality columns are in numeric format
     stacked <-
         stacked |> mutate(across(
-            .cols = -c("program_name","qid", "rid", "date", "modality"),
+            .cols = -c("program_name", "qid", "rid", "date", "modality"),
             .fns = as.numeric
         ))
     
@@ -291,12 +256,10 @@ update_summaries <- function(master_sid = master_sid) {
         nps = get_nps(nps),
         # calculates NPS from nps group scores
         across(all_of(
-            c(
-                satisfaction_items,
-                amount_items,
-                # indicator_items,
-                yes_no_items
-            )
+            c(satisfaction_items,
+              amount_items,
+              # indicator_items,
+              yes_no_items)
         ),
         ~ round(mean(
             as.numeric(.x), na.rm = TRUE
@@ -306,13 +269,37 @@ update_summaries <- function(master_sid = master_sid) {
     
     #add meta data back into the spreadsheet
     kpi_summaries <-
-        master |> 
+        master |>
         dplyr::right_join(kpi_summaries, by = "qid", keep = FALSE)
     
+    #find missing KPI for each qid
+    metric_cols <-
+        c("nps","overall_satisfaction_mn","overall_service_mn","content_relevant_mn","content_enriching_mn","deib_incorporate_mn","deib_represent_mn","community_partof_mn","community_shared_mn","community_network_mn","workload_mn","knowledge_skill_ready_mn","enrolled_with_colleagues_mn","in_us_mn"
+        )
+    
+    m <- kpi_summaries |> select(qid, all_of(metric_cols))
+    
+    m_long <- m %>%
+        pivot_longer(cols = metric_cols, names_to = "metric", values_to = "value") %>%
+        filter(is.na(value))
+
+    # Create a new dataframe with id and missing metrics as a comma-separated string
+    m_missing <- m_long %>%
+        group_by(qid) %>%
+        summarise(missing_metrics = toString(metric))
+    
+    # If you want to join this back to the original dataframe to see all data in one place
+    master <- left_join(master, m_missing, by = "qid")
+    
+        
     #upload the updated sheet into google
     sheet_write(data = kpi_summaries,
                 ss = master_sid,
                 sheet = "kpi summaries")
     
-    print("kpi summaries updated")
+    sheet_write(data = master,
+                ss = master_sid,
+                sheet = "master")
+    
+    print("all updated!!")
 }
