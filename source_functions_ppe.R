@@ -19,7 +19,6 @@ fetch_and_rename_survey <- function(input_qid) {
             add_column_map = TRUE,
             include_metadata = c("ResponseId", "RecordedDate"),
             include_embedded = NA,
-            force_request = TRUE,
             convert = FALSE,
             label = FALSE,
             verbose = FALSE
@@ -90,6 +89,85 @@ fetch_and_rename_survey <- function(input_qid) {
 }
 
 
+
+#new version----
+fetch_and_rename_survey2 <- function(input_qid) {
+    ## fetch survey----
+    survey <-
+        fetch_survey(
+            input_qid,
+            add_column_map = TRUE,
+            include_metadata = c("ResponseId", "RecordedDate"),
+            include_embedded = NA,
+            convert = FALSE,
+            label = TRUE,
+            verbose = FALSE
+        )
+    ## extract questions from column map and set it as column names----
+    colnames(survey) <-
+        attributes(survey)[["column_map"]][["description"]]
+    
+    ## make sure that survey names are unique----
+    survey <- survey %>% select(unique(colnames(.)))
+    
+    
+    ## a function to rename columns with a mapping document----
+    rename_cols_with_map <- function(survey_df, mapping_df) {
+        # Create a named vector where names are longnames and values are shortnames
+        name_mapping <-
+            setNames(mapping_df$shortname, mapping_df$longname)
+        
+        # Vectorized matching and renaming
+        # For each column name in survey_df, look for a match in the name_mapping vector
+        # If a match is found, use the corresponding value (shortname) from name_mapping
+        # If no match is found, keep the original column name
+        colnames(survey_df) <-
+            ifelse(
+                colnames(survey_df) %in% names(name_mapping),
+                name_mapping[colnames(survey_df)],
+                colnames(survey_df)
+            )
+        
+        # Return the updated survey dataframe
+        return(survey_df)
+    }
+    
+    
+    ## a function to select the columns of interest from the full survey.----
+    select_or_create_cols <- function(df) {
+        # Ensure col_names is a character vector
+        col_names <- mapping_df |> pull(shortname) |> unique()
+        
+        # Existing column names in df
+        existing_cols <- col_names[col_names %in% names(df)]
+        
+        # Select existing columns, using base R subsetting
+        df_selected <- df[, existing_cols, drop = FALSE]
+        
+        # Identify which columns are missing from the desired col_names list
+        missing_cols <- setdiff(col_names, existing_cols)
+        
+        # Create the missing columns and fill them with NA
+        if (length(missing_cols) > 0) {
+            df_selected[missing_cols] <- NA
+        }
+        
+        return(df_selected)
+    }
+    
+    
+    ## rename questions as column names, shorten to something readable----
+    survey <- rename_cols_with_map(survey, mapping_df)
+    
+    
+    ## select only the columns we want from the full survey
+    s <- select_or_create_cols(survey)
+    
+    ## add a column for qid----
+    s <- cbind(qid = input_qid, s)
+    
+}
+
 ### Function 2: update google sheets with the google sheet function from master_sid----
 #read the 'master' sheet from google, all col_types set to character
 
@@ -149,7 +227,25 @@ update_master <- function(master_sid = master_sid) {
     sheet_write(data = updates,
                 ss = master_sid,
                 sheet = "stacked")
-    print("All surveys updated and new surveys added")
+    
+    updates2 <-
+        map(master.qid, fetch_and_rename_survey2) |> list_rbind()
+    
+    updates2 <-
+        program_info |>
+        dplyr::right_join(updates2, by = "qid")
+    
+    #remove old sheet
+    sheet_delete(ss = master_sid, sheet = "stacked_labels")
+    
+    #write the new sheet
+    sheet_write(data = updates2,
+                ss = master_sid,
+                sheet = "stacked_labels")
+    
+    
+    
+    print("Version with labels created")
 }
 
 
@@ -158,8 +254,7 @@ update_summaries <- function(master_sid = master_sid) {
     master <-
         read_sheet(ss = master_sid,
                    sheet = "master",
-                   col_types = "c")
-    
+                   col_types = "c") |> select(-missing_metrics)
     # a custom function to handle NPS
     get_nps <- function(vec) {
         vec <- vec |>  na.omit()
