@@ -21,7 +21,8 @@ fetch_and_rename_survey <- function(input_qid) {
             include_embedded = NA,
             convert = FALSE,
             label = FALSE,
-            verbose = FALSE
+            verbose = FALSE,
+            force_request = TRUE
         )
     ## extract questions from column map and set it as column names----
     colnames(survey) <-
@@ -101,7 +102,8 @@ fetch_and_rename_survey2 <- function(input_qid) {
             include_embedded = NA,
             convert = FALSE,
             label = TRUE,
-            verbose = FALSE
+            verbose = FALSE,
+            force_request = TRUE
         )
     ## extract questions from column map and set it as column names----
     colnames(survey) <-
