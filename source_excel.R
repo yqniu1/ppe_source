@@ -292,5 +292,3 @@ main <- function() {
     onedrive$upload_file(local_wb_path, dest = wb_path)
     print("Workbook updated and uploaded to OneDrive successfully!")
 }
-
-main()
