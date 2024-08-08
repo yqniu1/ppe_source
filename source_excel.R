@@ -16,7 +16,7 @@ setup_and_configure <- function() {
     )
     
     onedrive <- get_business_onedrive()
-    wb_path <- "Documents/PPE Aggregation/eval_aggregation.xlsx"
+    wb_path <- "Documents/Eval Aggregation/eval_aggregation.xlsx"
     local_wb_path <- tempfile(fileext = ".xlsx")
     onedrive$download_file(wb_path, dest = local_wb_path)
     
