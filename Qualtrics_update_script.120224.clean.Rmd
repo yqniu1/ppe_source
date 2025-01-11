@@ -1,0 +1,25 @@
+---
+title: "Survey_Update_script"
+author: "Peter Niu"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+```{r packages, warning=FALSE, echo=FALSE}
+#load or install devtools
+if (!require("devtools")) {
+      install.packages("devtools", dependencies = TRUE)
+    }
+library(devtools)
+
+#load source functions
+source("local.R")
+
+#run me!
+set_working_directory_to_source()
+main()
+
+
+```
+

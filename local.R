@@ -1,3 +1,5 @@
+
+# This function reads the source file location of this scrit, "local.R", and tries to # set it as the current active directory. Makes it easier to download file. 
 set_working_directory_to_source <- function() {
     if (requireNamespace("rstudioapi", quietly = TRUE) && rstudioapi::isAvailable()) {
         script_path <- rstudioapi::getSourceEditorContext()$path
@@ -5,13 +7,15 @@ set_working_directory_to_source <- function() {
             setwd(dirname(script_path))
             message("Working directory set to source file location: ", getwd())
         } else {
-            message("Could not determine the script path. Are you running the script interactively?")
+            message("Could not determine the script path.")
         }
     } else {
         message("rstudioapi package is not available or you are not using RStudio.")
     }
 }
 
+# Check if the required functions are installed. Install or loads them. 
+# Set up api credentials for Qualtrics
 setup_and_configure <- function() {
     packages <- c("qualtRics", "dplyr", "readr", "tidyr", "gtools", "readxl", "openxlsx", "purrr")
     sapply(packages, function(pkg) {
@@ -28,8 +32,11 @@ setup_and_configure <- function() {
         base_url = "sjc1.qualtrics.com",
         overwrite = TRUE
     )
+    
+    tempdir <- paste0(getwd(),"/exports")
 }
 
+# Wrapper around the qualtRics package to fetch surveys from Qualtrics
 fetch_and_rename_survey <- function(input_qid, mapping_df, error_messages) {
     tryCatch({
         survey <- fetch_survey(
@@ -40,13 +47,18 @@ fetch_and_rename_survey <- function(input_qid, mapping_df, error_messages) {
             convert = FALSE,
             label = FALSE,
             verbose = FALSE,
-            limit = NULL
+            limit = 3,
+            tmp_dir = tempdir
         )
         
+        # set quesition text as colnames.
+        # question texts are stored as column attributes 
         colnames(survey) <- attributes(survey)[["column_map"]][["description"]]
         
+        # select only unique colnames from the downloaded survey. There shouldn't be duplicated names to begin with.
         survey <- survey %>% select(unique(colnames(.)))
         
+        # use the mapping_df worksheet to map question texts to short names
         rename_cols_with_map <- function(survey_df, mapping_df) {
             name_mapping <- setNames(mapping_df$shortname, mapping_df$longname)
             colnames(survey_df) <- ifelse(
@@ -57,6 +69,7 @@ fetch_and_rename_survey <- function(input_qid, mapping_df, error_messages) {
             return(survey_df)
         }
         
+        # if the exported survey doesn't have a given column, create it and set values as NA
         select_or_create_cols <- function(df, col_names) {
             existing_cols <- col_names[col_names %in% names(df)]
             df_selected <- df[, existing_cols, drop = FALSE]
@@ -67,8 +80,9 @@ fetch_and_rename_survey <- function(input_qid, mapping_df, error_messages) {
             return(df_selected)
         }
         
+        # col_names are stored in the mapping_df sheet
+        col_names <- mapping_df %>% pull(shortname) %>% unique()     
         survey <- rename_cols_with_map(survey, mapping_df)
-        col_names <- mapping_df %>% pull(shortname) %>% unique()
         s <- select_or_create_cols(survey, col_names)
         s <- cbind(qid = input_qid, s)
         
@@ -79,6 +93,7 @@ fetch_and_rename_survey <- function(input_qid, mapping_df, error_messages) {
     })
 }
 
+# reads all sheets from the local workbook (wb) and store them in a list
 read_sheets <- function(local_wb_path) {
     sheet_names <- excel_sheets(local_wb_path)
     sheets_list <- lapply(sheet_names, function(sheet) {
@@ -88,6 +103,8 @@ read_sheets <- function(local_wb_path) {
     return(sheets_list)
 }
 
+
+# pull out the program info columns from the master sheet so that they can be added to the responses
 update_program_info <- function(master, updates) {
     program_info <- master %>% select(
         program_name, qid, modality, k12, higher_ed, early_childhood, program_code,
@@ -200,10 +217,47 @@ update_summaries <- function(wb_path = local_wb_path) {
     
     master <- master %>% select(-missing_metrics)
     
+    # get_nps <- function(vec) {
+    #     vec <- vec %>% na.omit()
+    #     nps <- sum(vec == 3) / length(vec) - sum(vec == 1) / length(vec)
+    #     return(round(nps * 100, 2))
+    # }
+    
+    
+    # use a more flexibly nps function that takes both 1-10 and 1-3 as inputs
     get_nps <- function(vec) {
-        vec <- vec %>% na.omit()
-        nps <- sum(vec == 3) / length(vec) - sum(vec == 1) / length(vec)
-        return(round(nps * 100, 2))
+        # Remove NAs first
+        vec <- na.omit(vec)
+        
+        # Determine scale based on max value
+        max_val <- max(vec, na.rm = TRUE)
+        
+        # Validate input based on scale
+        if(max_val <= 3) {
+            valid_values <- 1:3
+            if(!all(vec %in% valid_values)) {
+                stop("For 3-point scale, values must be 1 (detractors), 2 (passives), or 3 (promoters)")
+            }
+            # Calculate NPS for 3-point scale
+            promoters <- sum(vec == 3) / length(vec)
+            detractors <- sum(vec == 1) / length(vec)
+            
+        } else if(max_val <= 10) {
+            valid_values <- 0:10
+            if(!all(vec %in% valid_values)) {
+                stop("For 10-point scale, values must be between 0 and 10")
+            }
+            # Calculate NPS for 10-point scale
+            promoters <- sum(vec >= 9) / length(vec)
+            detractors <- sum(vec <= 6) / length(vec)
+            
+        } else {
+            stop("Invalid scale detected. Values should be either 1-3 or 0-10")
+        }
+        
+        # Calculate NPS
+        nps <- (promoters - detractors) * 100
+        return(round(nps, 2))
     }
     
     stacked <- stacked %>% mutate(across(
@@ -271,7 +325,7 @@ update_summaries <- function(wb_path = local_wb_path) {
     m_missing <- m_long %>% group_by(qid) %>% summarise(missing_metrics = toString(metric))
     master <- left_join(master, m_missing, by = "qid")
     
-    wb <- loadWorkbook(local_wb_path)
+    wb <- loadWorkbook(wb_path)
     
     removeWorksheet(wb, "kpi_summaries")
     removeWorksheet(wb, "master")
