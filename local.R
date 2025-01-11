@@ -1,4 +1,3 @@
-
 # This function reads the source file location of this scrit, "local.R", and tries to # set it as the current active directory. Makes it easier to download file. 
 set_working_directory_to_source <- function() {
     if (requireNamespace("rstudioapi", quietly = TRUE) && rstudioapi::isAvailable()) {
@@ -16,8 +15,8 @@ set_working_directory_to_source <- function() {
 
 # Check if the required functions are installed. Install or loads them. 
 # Set up api credentials for Qualtrics
-setup_and_configure <- function() {
-    packages <- c("qualtRics", "dplyr", "readr", "tidyr", "gtools", "readxl", "openxlsx", "purrr")
+setup_and_configure <- function(install=FALSE) {
+    packages <- c("qualtRics", "dplyr", "readr", "tidyr", "gtools", "readxl", "openxlsx", "purrr","glue","rstudioapi")
     sapply(packages, function(pkg) {
         if (!requireNamespace(pkg, quietly = TRUE)) {
             message(paste("Installing package:", pkg))
@@ -30,14 +29,32 @@ setup_and_configure <- function() {
     qualtrics_api_credentials(
         api_key = "UacrIljM6AO37NF5f1uSkQgz2uarF3TXYgzybQAP",
         base_url = "sjc1.qualtrics.com",
-        overwrite = TRUE
+        overwrite = TRUE,
+        install = install
     )
     
-    tempdir <- paste0(getwd(),"/exports")
+    # creating a temporary directory to store survey exports
+    temp_dir <<- paste0(getwd(),"/exports") #create and assign globally a temporary directory to store exported surveys
+    
+    # Check if temp_dir exists, and create it if not
+    if (!dir.exists(temp_dir)) {
+        dir.create(temp_dir, recursive = TRUE)  # Create directory, including parents if needed
+        message(glue::glue("Directory {temp_dir} did not exist and was created."))
+    } else {
+        message(glue::glue("Directory {temp_dir} already exists."))
+    }
+    
+    message(glue::glue("Downloaded Qualtrics responses will be saved to the temporary directory at {temp_dir}"))
 }
 
 # Wrapper around the qualtRics package to fetch surveys from Qualtrics
-fetch_and_rename_survey <- function(input_qid, mapping_df, error_messages) {
+fetch_and_rename_survey <- function(input_qid, mapping_df, error_messages, testmode = FALSE) {
+    
+    # Wrapper around the Qualtrics::fetch_survey function to fetch a survey
+    
+    # # first, fetch survey
+    lim <- if (testmode) {3} else (NULL) # conditional limit to extract less rows for testing
+    
     tryCatch({
         survey <- fetch_survey(
             input_qid,
@@ -45,48 +62,47 @@ fetch_and_rename_survey <- function(input_qid, mapping_df, error_messages) {
             include_metadata = c("ResponseId", "RecordedDate"),
             include_embedded = NA,
             convert = FALSE,
-            label = FALSE,
+            label = TRUE,
             verbose = FALSE,
-            limit = 3,
-            tmp_dir = tempdir
+            limit = lim,
+            tmp_dir = temp_dir
         )
         
-        # set quesition text as colnames.
-        # question texts are stored as column attributes 
-        colnames(survey) <- attributes(survey)[["column_map"]][["description"]]
+        # extract column metadata from survey, which contains the question text
+        column_map <- extract_colmap(survey)
         
-        # select only unique colnames from the downloaded survey. There shouldn't be duplicated names to begin with.
-        survey <- survey %>% select(unique(colnames(.)))
+        # drop survey columns with all NA responses
+        survey <- survey |> select(where(~ !all(is.na(.))))
         
-        # use the mapping_df worksheet to map question texts to short names
-        rename_cols_with_map <- function(survey_df, mapping_df) {
-            name_mapping <- setNames(mapping_df$shortname, mapping_df$longname)
-            colnames(survey_df) <- ifelse(
-                colnames(survey_df) %in% names(name_mapping),
-                name_mapping[colnames(survey_df)],
-                colnames(survey_df)
-            )
-            return(survey_df)
+        # drop metadata for non-existant columns
+        column_map <- column_map[column_map$qname %in% names(survey), ]
+        
+        # keep qname as a survey attribute for backup
+        attr(survey, "qname") <- column_map$qname
+        
+        # create named vector to map long names to short names
+        name_mapping <- setNames(mapping_df$shortname, mapping_df$longname)
+        
+        # in metadata, create a shortname column
+        column_map$shortname <- name_mapping[column_map$description]
+        
+        # if shortname doesn't exist, use original description
+        column_map$shortname <- coalesce(column_map$shortname, column_map$description)
+        
+        # set survey column names using the metadata short name column
+        colnames(survey) <- make.names(column_map$shortname, unique = TRUE)
+        
+        # Add missing short names as columns with NA
+        missing_cols <- setdiff(col_names, colnames(survey))
+        if (length(missing_cols) > 0) {
+            survey[missing_cols] <- NA
         }
         
-        # if the exported survey doesn't have a given column, create it and set values as NA
-        select_or_create_cols <- function(df, col_names) {
-            existing_cols <- col_names[col_names %in% names(df)]
-            df_selected <- df[, existing_cols, drop = FALSE]
-            missing_cols <- setdiff(col_names, existing_cols)
-            if (length(missing_cols) > 0) {
-                df_selected[missing_cols] <- NA
-            }
-            return(df_selected)
-        }
+        # Add QID as the first column
+        survey <- dplyr::mutate(survey, qid = input_qid, .before = 1)
         
-        # col_names are stored in the mapping_df sheet
-        col_names <- mapping_df %>% pull(shortname) %>% unique()     
-        survey <- rename_cols_with_map(survey, mapping_df)
-        s <- select_or_create_cols(survey, col_names)
-        s <- cbind(qid = input_qid, s)
+        return(survey)
         
-        return(s)
     }, error = function(e) {
         error_messages <<- append(error_messages, paste(input_qid, ":", e$message))
         return(NULL)
@@ -342,7 +358,7 @@ update_summaries <- function(wb_path = local_wb_path) {
 }
 
 main <- function() {
-    local_wb_path <- "eval_aggregation.xlsx"
+    local_wb_path <- path_to_eval_aggregation_workbook
     
     setup_and_configure()
     

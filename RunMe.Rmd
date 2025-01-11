@@ -1,0 +1,39 @@
+---
+title: "Survey_Update_script"
+author: "Peter Niu"
+date: "`r Sys.Date()`"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# Setup 
+```{r packages, warning=FALSE, echo=FALSE}
+#load or install devtools
+if (!require("devtools")) {
+      install.packages("devtools", dependencies = TRUE)
+    }
+library(devtools)
+
+#load source functions
+source("local.R")
+
+
+#locate the path to your eval_aggregation.xlsx file. 
+#Fun the following lines. This will open a dialogue window. Navigate to the file.
+path_to_eval_aggregation_workbook <- rstudioapi::selectFile()
+
+# Confirm that the file was correctly identified
+message(glue::glue("Your eval_aggregation.xlsx file path is set to: '{path_to_eval_aggregation_workbook}'."))
+
+```
+
+
+# Run
+```{r}
+set_working_directory_to_source()
+
+main()
+
+```
+
